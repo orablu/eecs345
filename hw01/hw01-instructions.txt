@@ -1,0 +1,61 @@
+EECS 345: Programming Language Concepts
+Programming Exercise 1
+Due Sunday, February 3
+
+The purpose of this programming exercise is to learn the basic functional programming paradigm and become comfortable using recursion. In this homework, you are to create a number of Scheme functions. You are to follow a strict function programming style. That means you need to follow the style we used in class and use only functions, parameters, and recursion. You may write any helper functions you need, and you may use functions created for one problem to solve another. Please do not use built in Scheme functions except the ones we used in class: car, cdr (and all their variants), cons, null?, pair?, list?, =, eq? zero?, if, cond, and all the standard arithmetic and logic functions.
+
+Please include a comment at the top of the file giving your name, and please include a comment at the top of each function briefly explaining the function. Scheme comments start with a semicolon.
+
+Do not nest cond statements. Nor have more than two if statements nested inside each other. Instead, rearrange your logic so that you can write your function with a single cond of multiple cases.
+
+You can assume all input is in the proper format.
+
+Write the following functions:
+
+1) insert takes a number and a list of numbers in order and inserts the number in the proper place
+> (insert 7 '(1 4 5 6 9 10))
+(1 4 5 6 7 9 10)
+
+2) removedups takes a list of atoms and removes any atom that is a repeat of the atom that immediately precedes it 
+> (removedups '(a a b b b c c a b b))
+(a b c a b)
+
+3) nestlist takes a list of atoms and nests each atom into a nested sublist so the last element is the deepest 
+> (nestlist '(1 2 3 4 5))
+(1 (2 (3 (4 (5)))))
+
+4) deepcons takes an element and a list, that possibly containst sublists and places the element in the front of the first element, as deep in the sublist as needed 
+> (deepcons 'a '(((b c) d (e f)) g))
+(((a b c) d (e f)) 
+> (deepcons 'a '(b ((c) d (e f))))
+(a b ((c) d (e f)))
+> (deepcons 'a '(() ()))
+((a) ())
+
+5) nestlistfront takes a list of atoms and nests each element so the first element is the deepest 
+> (nestlistfront '(1 2 3 4 5))
+(((((1) 2) 3) 4) 5)
+
+6) numparens* takes a list and returns the number of pairs of parentheses
+> (numparens* '(1 2 3))
+1
+> (numparens* '(1 () (()) (2 3 (4))))
+6
+
+7) dup* takes a list and duplicates all contents, including any sublists
+> (dup* '(1 2 (3 4) 5)
+(1 1 2 2 (3 3 4 4) (3 3 4 4) 5 5)
+
+8) removedups* takes a list, that can contain sublists, and removes any atom that is the repeat of the atom that immediately precedes it in the same sublist
+> (removedups* '(a a (b b b (d d) b ((d) d)) f (f f g)))
+(a (b (d) b ((d) d)) f (f g))
+
+9) removedups** takes a list, that can contain sublists, and removes any element that, once repeated elements have been removed from it, is the repeat of any element (also once elements have been removed from it) that immediately precedes it in the same sublist
+> (removedups** '(x x (a a b) (a b b) c c))
+(x (a b) c)
+> (removedups** '((a a (b b b (c))) (a (b (c c)) (b b b (c)))))
+((a (b (c))))
+
+10) transpose takes a matrix and transposes it by swapping the ith row with the ith column. Since the list represents a matrix, you can assume the parameter is a list of lists, and each sublist has the same number of elements.
+> (transpose '((a b c d) (e f g h) (i j k l)))
+((a e i) (b f j) (c g k) (d h l))
