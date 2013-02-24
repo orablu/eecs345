@@ -6,9 +6,11 @@
 
 ;;; Expression abstractions
 
-(define op1 (lambda (expr) (car expr)))
-(define op2 (lambda (expr) (car (cdr (cdr expr)))))
-(define operator (lambda (expr) (car (cdr expr))))
+(define op1 (lambda (expr) (if (null? (cdr expr)) '() (car (cdr expr)))))
+(define op2 (lambda (expr) (if (null? (cdr (cdr expr))) '() (car (cdr (cdr expr))))))
+(define op3 (lambda (expr) (if (null? (cdr (cdr (cdr expr)))) '() (car (cdr (cdr (cdr expr)))))))
+(define operator (lambda (expr) (if (null? expr) '() (car expr))))
+(define opcount (lambda (expr) (if (null? expr) (0) (+ 1 (opcount (cdr expr))))))
 
 
 ;;; Expression evaluation
@@ -36,17 +38,21 @@
 
 ; Interprets an assignment (e.g. "x = 10;").
 (define interpret_assign (lambda stmt env
-    (cond
+    (if (declared? (op1 stmt))
+      (put (op1 stmt) (op2 stmt) (drop (op1 stmt) env))
+      (env)
       )))
 
 ; Interprets a declaration (e.g. "var x;" or "var y = 10").
 (define interpret_declare (lambda stmt env
-    (cond
-      )))
+    (put (op1 stmt) (interpret_value (op2 stmt)) env)))
 
 ; Interprets an if statement, with optional else.
 (define interpret_if (lambda stmt env
     (cond
+      ((interpret_condition (op1 stmt)) (interpret_statement_list (op2 stmt) env))
+      ((null? (op3 stmt)) env)
+      (else (interpret_statement_list (op3 stmt) env))
       )))
 
 ; Interprets a return statement.
@@ -59,6 +65,7 @@
 ; Interprets the value of a mathematical statement.
 (define interpret_value (lambda (stmt env)
     (cond
+      ((null? stmt) '())
       ((number? stmt) stmt)
       ((not (pair? stmt)) (lookup stmt env))
       ((null? (cdr stmt)) (interpret_value (car stmt) env))
@@ -67,7 +74,7 @@
       ((eq? '* (operator stmt)) (*         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '/ (operator stmt)) (quotient  (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '% (operator stmt)) (remainder (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      (else 'NULL)
+      (else '())
       )))
 
 ; Interprets the value of a logical statement.
@@ -82,14 +89,14 @@
       ((eq? '>  (operator stmt)) (>      (interpret_condition (op1 stmt) env) (interpret_condition (op2 stmt) env)))
       ((eq? '<= (operator stmt)) (<=     (interpret_condition (op1 stmt) env) (interpret_condition (op2 stmt) env)))
       ((eq? '>= (operator stmt)) (>=     (interpret_condition (op1 stmt) env) (interpret_condition (op2 stmt) env)))
-      (else 'NULL)
+      (else '())
       )))
 
 
 ;;; ENVIRONMENT LOGIC
 
 ; Generates a new environment.
-(define newenv (lambda '() '()))
+(define newenv (lambda () '()))
 
 ; Sets the value of the named variable in the environment to val.
 (define put (lambda (name val env) (cons (cons name val) (drop name env))))
@@ -114,8 +121,8 @@
 ; Returns the value of the given variable name.
 (define lookup (lambda (x env)
     (cond
-      ((null? env) 'NULL)
-      ((not (pair? (car env))) 'NULL)
+      ((null? env) '())
+      ((not (pair? (car env))) '())
       ((eq? x (car (car env))) (cdr (car env)))
       (else (lookup x (cdr env)))
       )))
