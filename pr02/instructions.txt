@@ -61,7 +61,7 @@ You do not have to convert simple scheme built-in functions like null?, eq?, lis
     (split '(1 2 3 4 5)) ==> '((2 4) (1 3 5))
 
 
-10.Write the following function without external helper functions or additional parameters. You do not need to use continuation passing style, but you may use continuations or call-with-current-continuation to assist you. The function suffix takes an atom and a list and returns a list containing all elements that occur after the last occurrence of the atom.
+10. Write the following function without external helper functions or additional parameters. You do not need to use continuation passing style, but you may use continuations or call-with-current-continuation to assist you. The function suffix takes an atom and a list and returns a list containing all elements that occur after the last occurrence of the atom.
     (suffix 'x '(a b c))  ==> (a b c)
     (suffix 'x '(a b x c d x e f)) ==> (e f)
 

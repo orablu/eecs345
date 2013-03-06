@@ -160,13 +160,37 @@
 
 
 ; 9. Use continuation passing style to create the following function without using external helper functions and without adding new parameters. The function split takes a list and returns a list containing two sublists, the first with the elements at the even indices and the second with the elements at the odd indices:
-; Non-cps version: (define split (lambda (l) (cons (evens #t l) (cons (evens #f l) '()))))
+    (define split-nocps ; For figuring out the problem, not used in real split method.
+      (lambda (b l)
+        (cond
+          ((null? l) '(()()))
+          (b (cons
+               (cons
+                 (car l)
+                 (car (split-nocps (not b) (cdr l))))
+               (cons
+                 (car (cdr (split-nocps (not b) (cdr l))))
+                 '())))
+          (else (cons
+                  (car (split-nocps (not b) (cdr l)))
+                  (cons
+                    (cons
+                      (car l)
+                      (car (cdr (split-nocps (not b) (cdr l)))))
+                    '())))
+          )))
+
     (define split
       (lambda (l)
-        ((lambda (l1 k)
-          (evens-cps #t l1 (lambda (v1) (evens-cps #f l1 (lambda (v2) (cons v1 (cons v2 '())))))))
-          l (lambda (v) v))
-        ))
+        (letrec ((split-cps (lambda (b l k) (cond
+          ((null? l) (k '(()())))
+          (b (split-cps (not b) (cdr l) (lambda (v)
+            (k (cons (cons (car l) (car v)) (cons (car (cdr v)) '()))))))
+          (else (split-cps (not b) (cdr l) (lambda (v)
+            (k (cons (car v) (cons (cons (car l) (car (cdr v))) '()))))))
+          ))))
+          (split-cps #f l (lambda (v) v))
+          )))
 
 
 ; 10. Write the following function without external helper functions or additional parameters. You do not need to use continuation passing style, but you may use continuations or call-with-current-continuation to assist you. The function suffix takes an atom and a list and returns a list containing all elements that occur after the last occurrence of the atom.
