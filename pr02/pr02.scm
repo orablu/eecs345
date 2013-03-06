@@ -1,8 +1,10 @@
 ; Wes Rupert - wkr3
 ; EECS 345 - Program 2
 
+
 ; For quick reference to the identity function when debugging. Not used in the actual code.
 (define i (lambda (v) v))
+
 
 ; 1. A function duplicate that takes two argument, an element and a size, and creates a list of the requested size.
     (define duplicate
@@ -18,6 +20,7 @@
           ((< n 1) (k '()))
           (else (duplicate-cps e (- n 1) (lambda (v) (k (cons e v)))))
           )))
+
 
 ; 2. A function removedups that takes a list and removes any atom that is a repeat of the atom that immediately precedes it.
     (define removedups
@@ -38,6 +41,7 @@
           (else (removedups-cps (cdr l) (lambda (v) (k (cons (car l) v)))))
           )))
 
+
 ; 3. The function count* that takes a list and and an element and returns the number of occurrences of the element in the list and all its sublists.
     (define count*
       (lambda (a l)
@@ -57,6 +61,7 @@
           (else (count-cps* a (cdr l) k))
           )))
 
+
 ; 4. The function numbersonly? that takes a list and returns if the list contains only numbers.
     (define numbersonly?
       (lambda (l)
@@ -74,8 +79,8 @@
           (else (k #f))
           )))
 
+
 ; 5. The function cleannumbers that takes a list of lists and returns a list that contains only those sublists that contain only numbers.
-; TODO: INCOMPLETE
     (define cleannumbers
       (lambda (l)
         (cond
@@ -87,11 +92,14 @@
     (define cleannumbers-cps
       (lambda (l k)
         (cond
+          ((null? l) (k '()))
+          ((numbersonly-cps? (car l) (lambda (v) (if v
+            (cleannumbers-cps (cdr l) (lambda (v1) (k (cons (car l) v1))))
+            (cleannumbers-cps (cdr l) k)))))
           )))
 
 
 ; 6. The function merge that merges two sorted lists of numbers into a larger sorted list.
-; TODO: INCOMPLETE
     (define merge
       (lambda (l1 l2)
         (cond
@@ -104,6 +112,10 @@
     (define merge-cps
       (lambda (l1 l2 k)
         (cond
+          ((null? l1) (k l2))
+          ((null? l2) (k l1))
+          ((< (car l1) (car l2)) (merge-cps (cdr l1) l2 (lambda (v) (k (cons (car l1) v)))))
+          (else (merge-cps l1 (cdr l2) (lambda (v) (k (cons (car l2) v)))))
           )))
 
 
@@ -120,6 +132,9 @@
     (define evens-cps
       (lambda (b l k)
         (cond
+          ((null? l) (k '()))
+          ((not b) (evens-cps (not b) (cdr l) (lambda (v) (k (cons (car l) v)))))
+          (else (evens-cps (not b) (cdr l) k))
           )))
 
 
