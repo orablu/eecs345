@@ -10,7 +10,7 @@
   (lambda (e n k)
     (cond
       ((< n 1) (k '()))
-      (else (duplicate e (- n 1) (lambda (v) (k (cons e v)))))
+      (else (duplicate-cps e (- n 1) (lambda (v) (k (cons e v)))))
       )))
 
 ; 2. A function removedups that takes a list and removes any atom that is a repeat of the atom that immediately precedes it.
@@ -28,7 +28,7 @@
     (cond
       ((null? l) (k '()))
       ((null? (cdr l)) (k l))
-      ((eq (car l) (car (cdr l))) (removedups-cps (cdr l) (k (cdr l))))
+      ((eq? (car l) (car (cdr l))) (removedups-cps (cdr l) (k (cdr l))))
       (else (removedups-cps (cdr l) (lambda (v) (k (cons (car l) v)))))
       )))
 
@@ -37,9 +37,9 @@
   (lambda (a l)
     (cond
       ((null? l) 0)
-      ((list? (car l)) (+ (count* (car l)) (count* (cdr l))))
-      ((eq? a (car l)) (+ 1 (count* (cdr l))))
-      (else (count* (cdr l)))
+      ((list? (car l)) (+ (count* a (car l)) (count* a (cdr l))))
+      ((eq? a (car l)) (+ 1 (count* a (cdr l))))
+      (else (count* a (cdr l)))
       )))
 
 (define count-cps*
@@ -112,6 +112,7 @@
   (lambda (l)
     (cond
       ((null? l) '())
+      ((null? (cdr l)) l)
       (else (merge (Mergesort (evens #t l)) (Mergesort (evens #f l))))
       )))
 
