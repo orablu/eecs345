@@ -195,10 +195,13 @@
 
 ; 10. Write the following function without external helper functions or additional parameters. You do not need to use continuation passing style, but you may use continuations or call-with-current-continuation to assist you. The function suffix takes an atom and a list and returns a list containing all elements that occur after the last occurrence of the atom.
     (define suffix
-      (lambda (a l k)
-        (cond
-          ((null? l) (k '()))
-          ((eq? a (car l)) (suffix a (cdr l) (lambda (v) v)))
-          (else (suffix a (cdr l) (lambda (v) (k (cons (car l) v)))))
+      (lambda (a l)
+        (letrec ((suffix-cps
+          (lambda (a l k)
+            (cond
+              ((null? l) (k '()))
+              ((eq? a (car l)) (suffix-cps a (cdr l) (lambda (v) v)))
+              (else (suffix-cps a (cdr l) (lambda (v) (k (cons (car l) v)))))
+              ))))
+          (suffix-cps a l (lambda (v) v))
           )))
-
