@@ -120,7 +120,6 @@
 
 
 ; 7. The function evens that takes a boolean and a list. If the boolean is true, evens will return every element at an even index, and if the boolean is false, evens will return every element at an odd index.
-; TODO: INCOMPLETE
     (define evens
       (lambda (b l)
         (cond
@@ -139,7 +138,6 @@
 
 
 ; 8. The function Mergesort that takes a list of numbers and returns a sorted version. If you recall the merge sort algorithm, you call evens twice to get lists containing the elements and the even and odd indeces, you then recursively call mergesort on each sublist, and then you call merge on the two lists returned by the recursive calls to mergesort.
-; TODO: INCOMPLETE
     (define Mergesort
       (lambda (l)
         (cond
@@ -151,25 +149,29 @@
     (define Mergesort-cps
       (lambda (l k)
         (cond
+          ((null? l) (k '()))
+          ((null? (cdr l)) (k l))
+          (else (evens-cps #t l (lambda (v1)
+            (evens-cps #f l (lambda (v2)
+              (Mergesort-cps v1 (lambda (v3)
+                (Mergesort-cps v2 (lambda (v4)
+                  (merge-cps v3 v4 k))))))))))
           )))
 
 
 ; 9. Use continuation passing style to create the following function without using external helper functions and without adding new parameters. The function split takes a list and returns a list containing two sublists, the first with the elements at the even indices and the second with the elements at the odd indices:
-; TODO: INCOMPLETE
-    (define split (lambda (l) (cons (evens #t l) (cons (evens #f l) '()))))
-
-    (define split-cps
+; Non-cps version: (define split (lambda (l) (cons (evens #t l) (cons (evens #f l) '()))))
+    (define split
       (lambda (l)
-        (lambda (l k)
-          ; TODO: Wtf do I do with this?
-          l (lambda (v) v))))
+        ((lambda (l1 k)
+          (evens-cps #t l1 (lambda (v1) (evens-cps #f l1 (lambda (v2) (cons v1 (cons v2 '())))))))
+          l (lambda (v) v))
+        ))
 
 
 ; 10. Write the following function without external helper functions or additional parameters. You do not need to use continuation passing style, but you may use continuations or call-with-current-continuation to assist you. The function suffix takes an atom and a list and returns a list containing all elements that occur after the last occurrence of the atom.
 ; TODO: INCOMPLETE
     (define suffix
       (lambda (a l)
-        (cond
-          ; TODO: Wtf do I do with this?
-          )))
+        ))
 
