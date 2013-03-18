@@ -1,4 +1,5 @@
 var x;
+
 x = 10;
 var y = 3 * x * 5;
 if (x > y)
