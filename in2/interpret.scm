@@ -1,7 +1,7 @@
 ;;; Wes Rupert - wkr3
-;;; EECS 345   - Project 01
+;;; EECS 345   - Interpreter 2
 
-(load "verySimpleParser.scm")
+(load "loopSimpleParser.scm")
 
 
 ;;; Expression abstractions
@@ -38,13 +38,13 @@
 ; Interprets an assignment (e.g. "x = 10;").
 (define interpret_assign (lambda (stmt env)
     (if (declared? (op1 stmt) env)
-      (put (op1 stmt) (op2 stmt) (drop (op1 stmt) env))
+      (assign (op1 stmt) (op2 stmt) (drop (op1 stmt) env))
       env
       )))
 
 ; Interprets a declaration (e.g. "var x;" or "var y = 10").
 (define interpret_declare (lambda (stmt env)
-    (put (op1 stmt) (interpret_value (op2 stmt) env) env)))
+    (declare (op1 stmt) (interpret_value (op2 stmt) env) env)))
 
 ; Interprets an if statement.
 (define interpret_if (lambda (stmt env)
@@ -58,7 +58,7 @@
 (define interpret_return (lambda (stmt env)
     (if (declared? 'return env)
       env
-      (put 'return (interpret_value (op1 stmt) env) env)
+      (assign 'return (interpret_value (op1 stmt) env) (declare 'return env))
       )))
 
 ; Interprets the value of a mathematical statement.
@@ -85,45 +85,83 @@
 
 ;;; ENVIRONMENT LOGIC
 
-; The environment is stored as a list of (value . name) pairs. It is stored
-; backwards like because the name will always be a string. Storing it as
-; (value . name) allows value to be the empty list ('()) and not require any
-; additional complex logic to properly create a pair of (name . '()).
+; The environment is stored as a list of frames. Each frame has two lists of
+; equal size, the first of variable names, and the second of their values.
 
-; Generates a new environment.
-(define newenv (lambda () '()))
+; Generates a new environment. 
+(define newenv (lambda () '((()()))))
 
-; Expression abstractions. 
-(define getname (lambda (var) (cdr var)))
-(define getval (lambda (var) (car var)))
+; Gets the item at index i, starting from 0.
+(define itemat (lambda (i l)
+    (if (= i 0)
+      (car l)
+      (itemat (- i 1) (cdr l))
+      )))
 
-; Sets the value of the named variable in the environment to val.
-(define put (lambda (name val env) (cons (cons val name) (drop name env))))
+; Removes the item at index i, starting from 0.
+(define removeat (lambda (i l)
+    (if (= i 0)
+      (cdr l)
+      (cons (car l) (removeat (- i 1) (cdr l)))
+      )))
 
-; Removes a variable from the environment.
-(define drop (lambda (name env)
-    (cond
-      ((null? env) '())
-      ((not (pair? (car env))) (drop name (cdr env)))
-      ((eq? name (getname (car env))) (drop name (cdr env)))
-      (else (cons (car env) (drop name (cdr env))))
+(define replaceat (lambda (x i l)
+    (if (= i 0)
+      (cons x (cdr l))
+      (cons (car l) (replaceat x (- i 1) (cdr l)))
+      )))
+
+; Gets the index of the given item.
+(define getindex (lambda (x l)
+    (letrec
+      ((getindex-cps (lambda (x l k)
+        (cond
+          ((null? l) -1)
+          ((eq? x (car l)) (k 0))
+          (else (getindex-cps x (cdr l) (lambda (v) (k (+ i 1)))))
+          ))))
+      (getindex-cps x l (lambda (v) v))
+    )))
+
+; Frame abstractions.
+(define names (lambda (frame) (car frame)))
+(define vals (lambda (frame) (car (cdr frame))))
+(define inframe? (lambda (x frame) (not (= -1 (getindex x (names frame))))))
+(define pushframe (lambda (env) (cons '(()()) env)))
+(define popframe (lambda (env) (cdr env)))
+(define getval (lambda (x frame) (itemat (getindex x (names frame)) (vals frame))))
+
+; Declares a new variable in the environment.
+(define declare (lambda (name env)
+	(cons
+	  (cons (cons name (names (car env)))
+	        (cons (cons 0 (vals (car env)))
+	               '()))
+      (cdr env)
       )))
 
 ; Tests whether the variable is delcared.
 (define declared? (lambda (x env)
-    (cond
-      ((null? env) #f)
-      ((not (pair? (car env))) (declared? x (cdr env)))
-      ((eq? x (getname (car env))) #t)
-      (else (declared? x (cdr env)))
+    (if (inframe? (car env))
+      #t
+      (declared? (cdr env))
+      )))
+
+; Sets the value of the named variable in the environment to val.
+(define assign (lambda (name val env)
+    (if (inframe? name (car env))
+	  (cons
+	    (cons (names (car env))
+	          (cons (replaceat val (getindex name (names (car env))) (vals (car env)))
+	                 '()))
+        (cdr env))
+      (cons (car env) (assign name val (cdr env)))
       )))
 
 ; Returns the value of the given variable name.
 (define lookup (lambda (x env)
-    (cond
-      ((null? env) '())
-      ((not (pair? (car env))) '())
-      ((eq? x (getname (car env))) (getval (car env)))
-      (else (lookup x (cdr env)))
+    (if (inframe? (car env))
+      (getval x (car env))
+      (lookup x (cdr env))
       )))
 
