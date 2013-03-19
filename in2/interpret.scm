@@ -72,7 +72,7 @@
       ((not (list? stmt)) (lookup stmt env))
       ((null? (cdr stmt)) (interpret_value (car stmt) env))
       ((eq? '+  (operator stmt)) (+         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((and (eq? '- (operator stmt)) (null? (op2 stmt))) (* -1               (interpret_value (op1 stmt) env)))
+      ((and (eq? '- (operator stmt)) (null? (op2 stmt))) (-                  (interpret_value (op1 stmt) env)))
       ((eq? '-  (operator stmt)) (-         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '*  (operator stmt)) (*         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '/  (operator stmt)) (quotient  (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
@@ -93,7 +93,8 @@
 ; equal size, the first of variable names, and the second of their values.
 
 ; Generates a new environment. 
-(define newenv (lambda () '((()()))))
+(define newenv (lambda () (cons (newframe) '())))
+(define newframe (lambda () '(()())))
 
 ; Gets the item at index i, starting from 0.
 (define itemat (lambda (i l)
@@ -128,14 +129,14 @@
     )))
 
 ; Frame abstractions.
-(define names (lambda (frame) (car frame)))
-(define vals (lambda (frame) (car (cdr frame))))
-(define topframe (lambda (env) (car (env))))
-(define lowframes (lambda (env) (cdr env)))
-(define inframe? (lambda (x frame) (not (= -1 (getindex x (names frame))))))
-(define pushframe (lambda (env) (cons '(()()) env)))
-(define popframe (lambda (env) (cdr env)))
-(define getval (lambda (x frame) (itemat (getindex x (names frame)) (vals frame))))
+(define names     (lambda (frame)   (car frame)))
+(define vals      (lambda (frame)   (car (cdr frame))))
+(define topframe  (lambda (env)     (car env)))
+(define lowframes (lambda (env)     (cdr env)))
+(define pushframe (lambda (env)     (cons (newframe) env)))
+(define popframe  (lambda (env)     (cdr env)))
+(define inframe?  (lambda (x frame) (not (= -1 (getindex x (names frame))))))
+(define getval    (lambda (x frame) (itemat (getindex x (names frame)) (vals frame))))
 
 ; Declares a new variable in the environment.
 (define declare (lambda (name env)
@@ -151,7 +152,7 @@
     (cond
       ((null? env) #f)
       ((inframe? x (topframe env)) #t)
-      (else (declared? x (topframe env)))
+      (else (declared? x (lowframes env)))
       )))
 
 ; Sets the value of the named variable in the environment to val.
