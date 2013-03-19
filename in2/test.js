@@ -1,1 +1,8 @@
-return 6 * -(4 * 2) + 9;
+var x = 10;
+{
+    var x = x + 5;
+    {
+        x = x + 5;
+    }
+}
+return x;
