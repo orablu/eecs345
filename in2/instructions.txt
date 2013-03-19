@@ -1,0 +1,69 @@
+EECS 345: Programming Language Concepts
+
+Interpreter Project, Part 2
+Due Wednesday, March 20
+
+For this and all Interpreter Project's, you are strongly encouraged, but not required, to work in a team of two. You will be building off of the interpreter you wrote for part 1. As a result, it is expected that you keep the same teams that you used for part 1. If you need to change your team, please speak to the course instructor.
+
+In this homework, you will expand on the interpreter of part 1 adding while loops with break and continue and blocks. We still assume all variables store integers (for the individuals working solo) and integers and boolean (for those working in teams).
+
+For teams: you are to again assume that expressions can have side effects. Specifically, you should assume that any expression can include an assignment operator that returns a value.
+
+An example program that computes the greatest common divisor of two numbers is as follows:
+
+var a = 14;
+var b = 3 * a - 7;
+if (a < b) {
+  var temp = a;
+  a = b;
+  b = temp;
+}
+var r = a % b;
+while (r != 0) {
+  a = b;
+  b = r;
+  r = a % b;
+}
+return b;
+The parser will have the following additional constructs:
+while (i < j)      =>   (while (< i j) (= i (+ i 1)))
+  i = i + 1;      
+  
+break;             =>   (break)
+continue;          =>   (continue)
+
+if (i < j) {       =>   (if (< i j) (begin (= i (+ i 1)) (= j (+ j 1))))
+  i = i + 1;
+  j = j - 1;
+}
+
+You do not have to stick to strict functional programming style, but you should try to avoid global variables because they will probably make your life harder. A new parser is provided for you. loopSimpleParser.scm is an update to the verySimpleParser.scm of the previous part that includes the while loops and blocks. To use the parser, type the code into a file, and call (parser "filename") as before. To call the parsers from your interpreter code, place the command (load "loopSimpleParser.scm") in the Scheme file.
+
+You should write a function called interpret that takes a filename, calls parser with the filename, evaluates the parse tree returned by parser, and returns the proper values. You are to maintain an environment for the variables and return an error message if the user attempts to use a variable before it is initialized.
+
+Hints: It will be easier if you create the interpreter in stages.
+
+First, complete the new environment as listed below. Then add the replace the old environment code in the simple interpreter with the new environment code, and make certain everything still works.
+
+Second, add the code for the loops and blocks to your interpreter.
+
+Test your code! Write loops with both break and continue and see if they work.
+
+Your interpreter is expected to still work with variable declarations, assignments, math and logic expressions, and if statements. If things did not work for your part 1 interpreter, now is a good time to fix them.
+
+Please save your interpreter as a Scheme file with the .scm extension.
+
+Environment
+
+To implement blocks, we need to make the following required change to the environment. In addition, because this interpreter does not require a lot of new features from the previous one, there is a recommended change to the environment that will let us more easily implement functions (and later objects). While you do not need to implement the recommended change in this assignment, you are strongly encouraged to do so now before it is required in parts 3 and 4.
+
+The required change: Your environment must now be a list of layers. Each layer will contain a list of variables and bindings similar to the basic environment of part 1. The initial environment consist of a single layer. Each time a new block is entered, you must "cons" a new layer to the front of your environment. Each time a variable is declared, that variable's binding goes into the top layer. Each time a variable is accessed (either to lookup its binding or to change it), the search must start in the top layer and work down. When a block is exited, the layer must be popped off of the environment, deleting any variables that were declared inside the block.
+
+The first recommended change: To simplify our implementation of functions/methods in the next interpreter parts, you should separate the variables of the environment from their values. Instead of making each layer a list of (variable, value) pairs, make each layer two lists. One list stores all the variables declared in this layer, and the second list stores the values. (The second list of values will be called the store). For example, if we have (x 5) (y 10) (z true) as bindings in the old environment, the new environment will be (x z y) (5 10 true).
+
+The second recommended change: To simplify the evaluation of side effects (solo coders will need to worry about functional side effects when we get to functions), we will break from the functional style of coding and place each value in a box. The Scheme commands are:
+(box v): places v into a box
+(unbox b): returns the value stored in box b
+(set-box! b v): changes the value stored in box b to value v.
+
+The result is that you can now change the value in the environment without having to create a new environment. For this interpreter, this will allow you to handle the side effect of assignment without interpreting each expression twice.

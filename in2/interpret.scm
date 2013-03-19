@@ -38,13 +38,16 @@
 ; Interprets an assignment (e.g. "x = 10;").
 (define interpret_assign (lambda (stmt env)
     (if (declared? (op1 stmt) env)
-      (assign (op1 stmt) (op2 stmt) (drop (op1 stmt) env))
+      (assign (op1 stmt) (interpret_value (op2 stmt) env) env)
       env
       )))
 
 ; Interprets a declaration (e.g. "var x;" or "var y = 10").
 (define interpret_declare (lambda (stmt env)
-    (declare (op1 stmt) (interpret_value (op2 stmt) env) env)))
+    (if (inframe? (op1 stmt) (topframe env))
+      (assign (op1 stmt) (interpret_value (op2 stmt) env) (declare (op1 stmt) env))
+      (car '()) ; TODO: Throw meaningful error.
+      )))
 
 ; Interprets an if statement.
 (define interpret_if (lambda (stmt env)
@@ -69,6 +72,7 @@
       ((not (list? stmt)) (lookup stmt env))
       ((null? (cdr stmt)) (interpret_value (car stmt) env))
       ((eq? '+  (operator stmt)) (+         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((and (eq? '- (operator stmt)) (null? (op2 stmt))) (* -1               (interpret_value (op1 stmt) env)))
       ((eq? '-  (operator stmt)) (-         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '*  (operator stmt)) (*         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '/  (operator stmt)) (quotient  (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
@@ -118,7 +122,7 @@
         (cond
           ((null? l) -1)
           ((eq? x (car l)) (k 0))
-          (else (getindex-cps x (cdr l) (lambda (v) (k (+ i 1)))))
+          (else (getindex-cps x (cdr l) (lambda (v) (k (+ v 1)))))
           ))))
       (getindex-cps x l (lambda (v) v))
     )))
@@ -126,6 +130,8 @@
 ; Frame abstractions.
 (define names (lambda (frame) (car frame)))
 (define vals (lambda (frame) (car (cdr frame))))
+(define topframe (lambda (env) (car (env))))
+(define lowframes (lambda (env) (cdr env)))
 (define inframe? (lambda (x frame) (not (= -1 (getindex x (names frame))))))
 (define pushframe (lambda (env) (cons '(()()) env)))
 (define popframe (lambda (env) (cdr env)))
@@ -134,34 +140,35 @@
 ; Declares a new variable in the environment.
 (define declare (lambda (name env)
 	(cons
-	  (cons (cons name (names (car env)))
-	        (cons (cons 0 (vals (car env)))
+	  (cons (cons name (names (topframe env)))
+	        (cons (cons 0 (vals (topframe env)))
 	               '()))
-      (cdr env)
+      (lowframes env)
       )))
 
 ; Tests whether the variable is delcared.
 (define declared? (lambda (x env)
-    (if (inframe? (car env))
-      #t
-      (declared? (cdr env))
+    (cond
+      ((null? env) #f)
+      ((inframe? x (topframe env)) #t)
+      (else (declared? x (topframe env)))
       )))
 
 ; Sets the value of the named variable in the environment to val.
 (define assign (lambda (name val env)
-    (if (inframe? name (car env))
+    (if (inframe? name (topframe env))
 	  (cons
-	    (cons (names (car env))
-	          (cons (replaceat val (getindex name (names (car env))) (vals (car env)))
+	    (cons (names (topframe env))
+	          (cons (replaceat val (getindex name (names (topframe env))) (vals (topframe env)))
 	                 '()))
-        (cdr env))
-      (cons (car env) (assign name val (cdr env)))
+        (lowframes env))
+      (cons (topframe env) (assign name val (lowframes env)))
       )))
 
 ; Returns the value of the given variable name.
 (define lookup (lambda (x env)
-    (if (inframe? (car env))
-      (getval x (car env))
-      (lookup x (cdr env))
+    (if (inframe? x (topframe env))
+      (getval x (topframe env))
+      (lookup x (lowframes env))
       )))
 
