@@ -5,18 +5,17 @@
 
 
 ;;; Expression abstractions
-
-(define op1 (lambda (expr) (if (null? (cdr expr)) '() (car (cdr expr)))))
-(define op2 (lambda (expr) (if (null? (cdr (cdr expr))) '() (car (cdr (cdr expr))))))
+(define op1 (lambda (expr) (if (null? (cdr expr))             '() (car (cdr expr)))))
+(define op2 (lambda (expr) (if (null? (cdr (cdr expr)))       '() (car (cdr (cdr expr))))))
 (define op3 (lambda (expr) (if (null? (cdr (cdr (cdr expr)))) '() (car (cdr (cdr (cdr expr)))))))
-(define operator (lambda (expr) (if (null? expr) '() (car expr))))
+(define op  (lambda (expr) (if (null? expr)                   '() (car expr))))
 
 
 ;;; Expression evaluation
 
 ; Interprets a file and returns the result.
 (define interpret (lambda (file)
-    (unparse (lookup 'return (interpret_statement_list (parser file) (newenv))))))
+    (unparse (call/cc (lambda (ret) (interpret_statement_list (parser file) (newenv)))))))
 
 ; Returns the value to human-readable format.
 (define unparse (lambda (x)
@@ -34,14 +33,17 @@
      )))
 
 ; Interprets a single statement.
-(define interpret_statement (lambda (stmt env)
+(define interpret_statement (lambda (stmt env ret break cont)
     (cond
-      ((eq? 'begin  (operator stmt)) (interpret_begin   stmt env))
-      ((eq? '=      (operator stmt)) (interpret_assign  stmt env))
-      ((eq? 'var    (operator stmt)) (interpret_declare stmt env))
-      ((eq? 'if     (operator stmt)) (interpret_if      stmt env))
-      ((eq? 'return (operator stmt)) (interpret_return  stmt env))
-      (else                          (interpret_value   stmt env))
+      ((eq? 'return   (op stmt)) (ret (interpret-value stmt env)           ))
+      ((eq? '=        (op stmt)) (interpret_assign  stmt env               ))
+      ((eq? 'begin    (op stmt)) (interpret_begin   stmt env ret break cont))
+      ((eq? 'if       (op stmt)) (interpret_if      stmt env ret break cont))
+      ((eq? 'var      (op stmt)) (interpret_declare stmt env               ))
+      ((eq? 'while    (op stmt)) (interpret_while   stmt env ret           ))
+      ((eq? 'break    (op stmt)) (break                  env               ))
+      ((eq? 'continue (op stmt)) (cont                   env               ))
+      (else                      (interpret_value   stmt env               ))
       )))
 
 ; Interprets an assignment (e.g. "x = 10;").
@@ -85,28 +87,40 @@
       ((eq? 'false stmt) #f)
       ((not (list? stmt)) (lookup stmt env))
       ((null? (cdr stmt)) (interpret_value (car stmt) env))
-      ((eq? '+  (operator stmt)) (+         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((and (eq? '- (operator stmt)) (null? (op2 stmt))) (-                  (interpret_value (op1 stmt) env)))
-      ((eq? '-  (operator stmt)) (-         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '*  (operator stmt)) (*         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '/  (operator stmt)) (quotient  (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '%  (operator stmt)) (remainder (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '== (operator stmt)) (eq?       (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '!= (operator stmt)) (not (=    (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env))))
-      ((eq? '<  (operator stmt)) (<         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '>  (operator stmt)) (>         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '<= (operator stmt)) (<=        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '>= (operator stmt)) (>=        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '&& (operator stmt)) (and       (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      ((eq? '|| (operator stmt)) (or        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
-      (else '())
+      ((and (eq? '- (op stmt)) (null? (op2 stmt))) (-                  (interpret_value (op1 stmt) env)))
+      ((eq? '+  (op stmt)) (+         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '-  (op stmt)) (-         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '*  (op stmt)) (*         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '/  (op stmt)) (quotient  (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '%  (op stmt)) (remainder (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '== (op stmt)) (eq?       (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '!= (op stmt)) (not (=    (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env))))
+      ((eq? '<  (op stmt)) (<         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '>  (op stmt)) (>         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '<= (op stmt)) (<=        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '>= (op stmt)) (>=        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '&& (op stmt)) (and       (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '|| (op stmt)) (or        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      (else  (car '())) ; TODO: Throw actual error.
       )))
+
+; Interprets the value of a while loop.
+(define interpret_while (lambda (stmt env ret)
+    (call/cc (lambda (break)
+      (letrec ((loop (lambda (test body env)
+        (call/cc (lambda (cont)
+          (if (interpret_value test env)
+            (loop condit body (interpret_statement body env ret break cont))
+            env)))))
+        (loop (op1 stmt) (op2 stmt) env)
+        ))))))
 
 
 ;;; ENVIRONMENT LOGIC
 
-; The environment is stored as a list of frames. Each frame has two lists of
-; equal size, the first of variable names, and the second of their values.
+; The environment is stored as a list of frames, ordered by most recent frame
+; first. Each frame has two lists of equal size, the first of variable names,
+; and the second of their values.
 
 ; Generates a new environment. 
 (define newenv    (lambda ()        (cons (newframe) '())))
