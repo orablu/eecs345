@@ -26,10 +26,10 @@
       )))
 
 ; Interprets a list of parsed statements.
-(define interpret_statement_list (lambda (parsetree env)
-    (cond
-     ((null? parsetree) env)
-     (else (interpret_statement_list (cdr parsetree) (interpret_statement (car parsetree) env)))
+(define interpret_statement_list (lambda (parsetree env ret break cont)
+    (if (null? parsetree)
+      env
+     (interpret_statement_list (cdr parsetree) (interpret_statement (car parsetree) env ret break cont))
      )))
 
 ; Interprets a single statement.
@@ -38,8 +38,8 @@
       ((eq? 'return   (op stmt)) (ret (interpret-value stmt env)           ))
       ((eq? '=        (op stmt)) (interpret_assign  stmt env               ))
       ((eq? 'begin    (op stmt)) (interpret_begin   stmt env ret break cont))
-      ((eq? 'if       (op stmt)) (interpret_if      stmt env ret break cont))
       ((eq? 'var      (op stmt)) (interpret_declare stmt env               ))
+      ((eq? 'if       (op stmt)) (interpret_if      stmt env ret break cont))
       ((eq? 'while    (op stmt)) (interpret_while   stmt env ret           ))
       ((eq? 'break    (op stmt)) (break                  env               ))
       ((eq? 'continue (op stmt)) (cont                   env               ))
@@ -52,8 +52,8 @@
     ))
 
 ; Interprets a block.
-(define interpret_begin (lambda (stmt env)
-    (popframe (interpret_statement_list (cdr stmt) (pushframe env)))
+(define interpret_begin (lambda (stmt env ret break cont)
+    (popframe (interpret_statement_list (cdr stmt) (pushframe env) ret break cont))
     ))
 
 ; Interprets a declaration (e.g. "var x;" or "var y = 10").
@@ -64,18 +64,11 @@
       )))
 
 ; Interprets an if statement.
-(define interpret_if (lambda (stmt env)
+(define interpret_if (lambda (stmt env ret break cont)
     (cond
-      ((interpret_value (op1 stmt) env) (interpret_statement (op2 stmt) env))
+      ((interpret_value (op1 stmt) env) (interpret_statement (op2 stmt) env ret break cont))
       ((null? (op3 stmt)) env)
-      (else (interpret_statement (op3 stmt) env))
-      )))
-
-; Interprets a return statement.
-(define interpret_return (lambda (stmt env)
-    (if (gDeclared? 'return env)
-      env
-      (gAssign 'return (interpret_value (op1 stmt) env) (gDeclare 'return env))
+      (else (interpret_statement (op3 stmt) env ret break cont))
       )))
 
 ; Interprets the value of a mathematical statement.
