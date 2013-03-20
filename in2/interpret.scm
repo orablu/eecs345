@@ -110,7 +110,7 @@
       (letrec ((loop (lambda (test body env)
         (call/cc (lambda (cont)
           (if (interpret_value test env)
-            (loop condit body (interpret_statement body env ret break cont))
+            (loop test body (interpret_statement body env ret break cont))
             env)))))
         (loop (op1 stmt) (op2 stmt) env)
         ))))))
