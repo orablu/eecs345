@@ -94,6 +94,7 @@
       ((eq? '>= (op stmt)) (>=        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '&& (op stmt)) (and       (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '|| (op stmt)) (or        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
+      ((eq? '!  (op stmt)) (not       (interpret_value (op1 stmt) env)                                 ))
       (else  (car '())) ; TODO: Throw actual error.
       )))
 
