@@ -15,7 +15,7 @@
 
 ; Interprets a file and returns the result.
 (define interpret (lambda (file)
-    (unparse (call/cc (lambda (ret) (interpret_statement_list (parser file) (newenv)))))))
+    (unparse (call/cc (lambda (ret) (interpret_statement_list (parser file) (newenv) ret ret ret))))))
 
 ; Returns the value to human-readable format.
 (define unparse (lambda (x)
@@ -29,13 +29,13 @@
 (define interpret_statement_list (lambda (parsetree env ret break cont)
     (if (null? parsetree)
       env
-     (interpret_statement_list (cdr parsetree) (interpret_statement (car parsetree) env ret break cont))
+     (interpret_statement_list (cdr parsetree) (interpret_statement (car parsetree) env ret break cont) ret break cont)
      )))
 
 ; Interprets a single statement.
 (define interpret_statement (lambda (stmt env ret break cont)
     (cond
-      ((eq? 'return   (op stmt)) (ret (interpret-value stmt env)           ))
+      ((eq? 'return   (op stmt)) (ret (interpret_value (op1 stmt) env)     ))
       ((eq? '=        (op stmt)) (interpret_assign  stmt env               ))
       ((eq? 'begin    (op stmt)) (interpret_begin   stmt env ret break cont))
       ((eq? 'var      (op stmt)) (interpret_declare stmt env               ))
@@ -101,12 +101,11 @@
 (define interpret_while (lambda (stmt env ret)
     (call/cc (lambda (break)
       (letrec ((loop (lambda (test body env)
-        (call/cc (lambda (cont)
           (if (interpret_value test env)
-            (loop test body (interpret_statement body env ret break cont))
-            env)))))
-        (loop (op1 stmt) (op2 stmt) env)
-        ))))))
+            (loop test body (call/cc (lambda (cont) (interpret_statement body env ret break cont))))
+            env))))
+          (loop (op1 stmt) (op2 stmt) env)))
+        )))
 
 
 ;;; ENVIRONMENT LOGIC
