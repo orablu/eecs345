@@ -5,10 +5,10 @@
 
 
 ;;; Expression abstractions
-(define op1 (lambda (expr) (if (null? (cdr expr))             '() (car (cdr expr)))))
-(define op2 (lambda (expr) (if (null? (cdr (cdr expr)))       '() (car (cdr (cdr expr))))))
-(define op3 (lambda (expr) (if (null? (cdr (cdr (cdr expr)))) '() (car (cdr (cdr (cdr expr)))))))
-(define op  (lambda (expr) (if (null? expr)                   '() (car expr))))
+(define op1 (lambda (expr) (if (null? (cdr   expr)) '() (cadr   expr))))
+(define op2 (lambda (expr) (if (null? (cddr  expr)) '() (caddr  expr))))
+(define op3 (lambda (expr) (if (null? (cdddr expr)) '() (cadddr expr))))
+(define op  (lambda (expr) (if (null? expr)         '() (car    expr))))
 
 
 ;;; Expression evaluation
@@ -51,7 +51,7 @@
     (assign (op1 stmt) (interpret_value (op2 stmt) env) env)
     ))
 
-; Interprets a block.
+; Interprets a block (e.g. "{...}").
 (define interpret_begin (lambda (stmt env ret break cont)
     (popframe (interpret_statement_list (cdr stmt) (pushframe env) ret break cont))
     ))
@@ -63,7 +63,7 @@
       (assign (op1 stmt) (interpret_value (op2 stmt) env) (declare (op1 stmt) env))
       )))
 
-; Interprets an if statement.
+; Interprets an if statement (e.g. "if (...) ...;" or "if (...) {...} else {...}").
 (define interpret_if (lambda (stmt env ret break cont)
     (cond
       ((interpret_value (op1 stmt) env) (interpret_statement (op2 stmt) env ret break cont))
@@ -95,7 +95,7 @@
       ((eq? '&& (op stmt)) (and       (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '|| (op stmt)) (or        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '!  (op stmt)) (not       (interpret_value (op1 stmt) env)                                 ))
-      (else  (car '())) ; TODO: Throw actual error.
+      (else  (error (cons "Symbol not recognized" (op stmt))))
       )))
 
 ; Interprets the value of a while loop.
