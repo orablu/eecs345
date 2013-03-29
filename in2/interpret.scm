@@ -15,20 +15,27 @@
 
 ; Interprets a file and returns the result.
 (define interpret (lambda (file)
-    (unparse (call/cc (lambda (ret) (interpret_statement_list (parser file) (newenv) ret ret ret))))))
+    (unparse (call/cc (lambda (ret)
+      (interpret_statement_list
+        (parser file)
+        (newenv)
+        ret
+        (lambda (v) (error "Illegal break"))
+        (lambda (v) (error "Illegal continue"))
+        ))))))
 
 ; Returns the value to human-readable format.
 (define unparse (lambda (x)
     (cond
-      ((and (not (number? x)) x)       'true)
-      ((and (not (number? x)) (not x)) 'false)
+      ((and (not (number? x)) x)       "true" )
+      ((and (not (number? x)) (not x)) "false")
       (else x)
       )))
 
 ; Interprets a list of parsed statements.
 (define interpret_statement_list (lambda (parsetree env ret break cont)
     (if (null? parsetree)
-      env
+     env
      (interpret_statement_list (cdr parsetree) (interpret_statement (car parsetree) env ret break cont) ret break cont)
      )))
 
@@ -53,7 +60,7 @@
 
 ; Interprets a block (e.g. "{...}").
 (define interpret_begin (lambda (stmt env ret break cont)
-    (popframe (interpret_statement_list (cdr stmt) (pushframe env) ret break cont))
+    (popframe (interpret_statement_list (cdr stmt) (pushframe env) ret (lambda (v) (break (popframe v))) (lambda (v) (continue (popframe v)))))
     ))
 
 ; Interprets a declaration (e.g. "var x;" or "var y = 10").
