@@ -23,10 +23,10 @@
 (verify "tests\\08.js" 10)
 (verify "tests\\09.js" 5)
 (verify "tests\\10.js" -39)
-(verify "tests\\15.js" 'true)
+(verify "tests\\15.js" "true")
 (verify "tests\\16.js" 100)
-(verify "tests\\17.js" 'false)
-(verify "tests\\18.js" 'true)
+(verify "tests\\17.js" "false")
+(verify "tests\\18.js" "true")
 
 ; Tests for new behavior.
 (verify "tests\\11.js" 30)
