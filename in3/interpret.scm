@@ -1,8 +1,9 @@
 ;;; Wes Rupert - wkr3
-;;; EECS 345   - Interpreter 2
+;;; EECS 345   - Interpreter 3
 
-(load "loopSimpleParser.scm")
 (load "environment.scm")
+(load "functionParser.scm")
+;(load "loopSimpleParser.scm")
 
 
 ;;; Expression abstractions

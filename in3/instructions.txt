@@ -1,0 +1,74 @@
+EECS 345: Programming Language Concepts
+Interpreter Project, Part 3
+Due Sunday, April 7
+
+For this and all Interpreter Project's, you are strongly encouraged, but not required, to work in a team of two. You will be building off of the interpreter you wrote for part 1. As a result, it is expected that you keep the same teams that you used for part 2. If you need to change your team, please speak to the course instructor.
+
+In this homework, you will expand on the interpreter of part 2 adding function definitions. We still assume all variables store integers (for the individuals working solo) and integers and boolean (for those working in teams). Likewise, all functions will only return integers (for the individuals working solo) and integers and boolean (for those working in teams).
+
+For teams: You are to implement both the call-by-reference and the call-by-value parameter passing styles. Solo programmers will only be tested on call-by-value.
+
+An example program that computes the greatest common divisor of two numbers is as follows:
+
+var x = 14;
+var y = 3 * x - 7;
+gcd(a,b) {
+  if (a < b) {
+    var temp = a;
+    a = b;
+    b = temp;
+  }
+  var r = a % b;
+  while (r != 0) {
+    a = b;
+    b = r;
+    r = a % b;
+  }
+  return b;
+}
+main () {
+  return gcd(x,y);
+}
+
+Here is another example program that uses recursion: 
+factorial (x) {
+  if (x == 0)
+    return 1;
+  else
+    return x * factorial(x - 1);
+}
+
+main () {
+  return factorial(6);
+}
+
+Note that only assignment statements are allowed outside of functions. Functions do not have to return a value. The parser will have the following additional constructs: a(x, y) {          =>   (function a (x y) ((return (+ x y)))
+  return x + y;
+}
+
+main () {          =>   (function main () ((var x 10) (var y 15) (return (funcall gcd x y))))
+  var x = 10;
+  var y = 15;
+  return gcd(x, y);
+}
+
+The final value returned by your interpreter should be whatever is returned by main. 
+
+We will use a similar style as C++ for call-by-reference: 
+swap(&x, &y) {     =>  (function swap (& x & y) ((var temp x) (= x y) (= y temp)))
+  var temp = x;
+  x = y;
+  y = temp;
+}
+
+
+
+Function calls may appear on the right hand side of global variable declaration/initialization statements, but the function (and any functions that function calls) must be defined before the variable declaration. Otherwise, functions that are used inside other functions do not need to be defined before they are used.
+
+For teams, it is an error to use call-by-reference on anything other than a variable. For example, if the program contains swap(x, x + 10), you should give an error because x + 10 is not a variable.
+
+You do not have to stick to strict functional programming style, but you should try to avoid global variables because they will probably make your life harder. A new parser is provided for you, functionParser.scm, that will parse code containing functions/methods as in the above examples. To use the parser, type the code into a file, and call (parser "filename") as before. To call the parsers from your interpreter code, place the command (load "parsename") in the Scheme file.
+
+You should write a function called interpret that takes a filename, calls parser with the filename, evaluates the parse tree returned by parser, and returns the proper value returned by main. You are to maintain an environment for the variables and return an error message if the program attempts to use a variable before it is declared, attempts to use a variable before it is initialized, or attempts to use a method that has not been defined.
+
+First, test your functions without global variables, and then test your functions using global variables. The tricky part with the functions is that, unlike the other language constructs we have created, method calls can be a statement (where the return value is ignored), and an expression (where the return value is used). You need to make sure both function types work.
