@@ -15,7 +15,7 @@
 ; and the second of their values.
 
 ; Generates a new environment. 
-(define newenv    (lambda ()        (box (cons (newframe) '()))))
+(define newenv    (lambda ()        (cons (newframe) '())))
 
 ; Frame abstractions.
 (define newframe  (lambda ()        '(()())))
@@ -23,8 +23,8 @@
 (define vals      (lambda (frame)   (car (cdr frame))))
 (define topframe  (lambda (env)     (car env)))
 (define lowframes (lambda (env)     (cdr env)))
-(define pushframe (lambda (env)     (begin (set-box! env (cons (newframe) (unbox env))) env)))
-(define popframe  (lambda (env)     (begin (set-box! env (cdr (unbox env))) env)))
+(define pushframe (lambda (env)     (cons (newframe) env)))
+(define popframe  (lambda (env)     (cdr env)))
 (define inframe?  (lambda (name frame) (not (= -1 (getindex name (names frame))))))
 (define getval    (lambda (name frame) (itemat (getindex name (names frame)) (vals frame))))
 
@@ -63,24 +63,19 @@
 
 ; Declares a new variable in the environment in the current frame.
 (define declare (lambda (name env)
-    (begin
-      (if (not (inframe? name (topframe (unbox env))))
-        (set-box! env (cons
-          (cons
-            (cons name          (names (topframe (unbox env))))
-            (cons (cons (box 0) (vals  (topframe (unbox env)))) '()))
-          (lowframes (unbox env))
-          ))
-        (error "Variable is already defined:" name))
-      env
+	(cons
+      (cons
+        (cons name          (names (topframe env)))
+	    (cons (cons (box 0) (vals  (topframe env))) '()))
+      (lowframes env)
       )))
 
 ; Tests whether the variable is delcared.
 (define declared? (lambda (name env)
     (cond
-      ((null? (unbox env)) #f)
-      ((inframe? name (topframe (unbox env))) #t)
-      (else (declared? name (lowframes (unbox env))))
+      ((null? env) #f)
+      ((inframe? name (topframe env)) #t)
+      (else (declared? name (lowframes env)))
       )))
 
 ; Sets the value of the named variable in the environment to val in the most current frame.
@@ -88,18 +83,15 @@
     (begin
       (cond
         ((declared? name env) (set-box! (lookup-ref name env) val))
-        (else (error "Referencing undeclared variable:" name)))
+        (else (error "Referencing undeclared variable: " name)))
       env
       )))
 
-; Returns the reference to the given variable.
+; Returns the value of the given variable name.
 (define lookup-ref (lambda (name env)
-    (letrec ((lookup-env (lambda (name env)
-        (if (inframe? name (topframe env))
-          (getval name (topframe env))
-          (lookup-env name (lowframes env))))))
-      (lookup-env name (unbox env)))))
+    (if (inframe? name (topframe env))
+      (getval name (topframe env))
+      (lookup-ref name (lowframes env))
+      )))
 
-; Returns the value of the given variable.
 (define lookup (lambda (name env) (unbox (lookup-ref name env))))
-

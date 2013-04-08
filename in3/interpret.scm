@@ -3,28 +3,31 @@
 
 (load "environment.scm")
 (load "functionParser.scm")
-;(load "loopSimpleParser.scm")
 
 
 ;;; Expression abstractions
-(define op1 (lambda (expr) (if (null? (cdr   expr)) '() (cadr   expr))))
-(define op2 (lambda (expr) (if (null? (cddr  expr)) '() (caddr  expr))))
-(define op3 (lambda (expr) (if (null? (cdddr expr)) '() (cadddr expr))))
-(define op  (lambda (expr) (if (null? expr)         '() (car    expr))))
+
+(define op1 (lambda (expr) (if (null? (cdr   expr)) (error "Expression has no op1") (cadr   expr))))
+(define op2 (lambda (expr) (if (null? (cddr  expr)) (error "Expression has no op2") (caddr  expr))))
+(define op3 (lambda (expr) (if (null? (cdddr expr)) (error "Expression has no op3") (cadddr expr))))
+(define op  (lambda (expr) (if (null? expr)         (error "Expression has no op") (car    expr))))
 
 
 ;;; Expression evaluation
 
 ; Interprets a file and returns the result.
 (define interpret (lambda (file)
-    (unparse (call/cc (lambda (ret)
-      (interpret_statement_list
-        (parser file)
-        (newenv)
-        ret
-        (lambda (v) (error "Illegal break"))
-        (lambda (v) (error "Illegal continue"))
-        ))))))
+      (unparse (interpret_funcall '(funcall main) (interpret_global (parser file) (newenv))))
+      ))
+
+(define interpret_global (lambda (parsetree env)
+    (interpret_statement_list
+      parsetree
+      env
+      (lambda (v) (error "Illegal return"))
+      (lambda (v) (error "Illegal break"))
+      (lambda (v) (error "Illegal continue"))
+      )))
 
 ; Returns the value to human-readable format.
 (define unparse (lambda (x)
@@ -44,10 +47,12 @@
 ; Interprets a single statement.
 (define interpret_statement (lambda (stmt env ret break cont)
     (cond
-      ((eq? 'begin    (op stmt)) (interpret_begin   stmt env ret break cont))
-      ((eq? 'var      (op stmt)) (interpret_declare stmt env               ))
       ((eq? '=        (op stmt)) (interpret_assign  stmt env               ))
+      ((eq? 'begin    (op stmt)) (interpret_begin   stmt env ret break cont))
+      ((eq? 'function (op stmt)) (interpret_fundef  stmt env               ))
+      ((eq? 'funcall  (op stmt)) (interpret_funcall stmt env               ))
       ((eq? 'if       (op stmt)) (interpret_if      stmt env ret break cont))
+      ((eq? 'var      (op stmt)) (interpret_declare stmt env               ))
       ((eq? 'while    (op stmt)) (interpret_while   stmt env ret           ))
       ((eq? 'break    (op stmt)) (break                  env               ))
       ((eq? 'continue (op stmt)) (cont                   env               ))
@@ -80,13 +85,36 @@
       (assign (op1 stmt) (interpret_value (op2 stmt) env) (declare (op1 stmt) env))
       )))
 
+; Interprets a function call (e.g. "min(3, 5)").
 (define interpret_funcall (lambda (stmt env)
-    (error "Not implemented"
+    (call/cc (lambda (ret)
+      (interpret_function
+        (cadr (lookup (op1 stmt) env))
+        (set_formal_params
+          (cddr stmt)
+          (car (lookup (op1 stmt) env))
+          env
+          ((caddr (lookup (op1 stmt) env))))
+        ret)
+      ))))
+
+; Interprets a function definition (e.g. "main() {...}").
+(define interpret_fundef (lambda (stmt env)
+    (assign
+      (op1 stmt)
+      (cons (op2 stmt) (cons (op3 stmt) (cons (lambda () env) '())))
+      (declare (op1 stmt) env)
       )))
 
-(define interpret_function (lambda (stmt env)
-    (error "Not implemented"
-      )))
+(define interpret_function (lambda (stmt env ret)
+    (popframe
+      (interpret_statement_list
+        (cdr stmt)
+        (pushframe env)
+        ret
+        (lambda (v) (error "Illegal break"))
+        (lambda (v) (error "Illegal continue")))
+        )))
 
 ; Interprets an if statement (e.g. "if (...) ...;" or "if (...) {...} else {...}").
 (define interpret_if (lambda (stmt env ret break cont)
@@ -132,4 +160,15 @@
             env))))
           (loop (op1 stmt) (op2 stmt) env)))
         )))
+
+; Sets the formal parameters of the environment to the values in the given parameters.
+(define set_formal_params (lambda (params formals env funcenv)
+    (cond
+      ((and (null? params) (null? formals)) env)
+      ((or  (null? params) (null? formals)) (error "Invalid number of arguments"))
+      (else (assign
+        (car formals)
+        ((interpret_value (car params) env))
+        (declare (car formals) funcenv)))
+      )))
 
