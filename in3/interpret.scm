@@ -29,8 +29,8 @@
 ; Returns the value to human-readable format.
 (define unparse (lambda (x)
     (cond
-      ((and (not (number? x)) x)       "true" )
-      ((and (not (number? x)) (not x)) "false")
+      ((and (not (number? x)) x)       'true)
+      ((and (not (number? x)) (not x)) 'false)
       (else x)
       )))
 
@@ -44,14 +44,14 @@
 ; Interprets a single statement.
 (define interpret_statement (lambda (stmt env ret break cont)
     (cond
-      ((eq? 'return   (op stmt)) (ret (interpret_value (op1 stmt) env)     ))
-      ((eq? '=        (op stmt)) (interpret_assign  stmt env               ))
       ((eq? 'begin    (op stmt)) (interpret_begin   stmt env ret break cont))
       ((eq? 'var      (op stmt)) (interpret_declare stmt env               ))
+      ((eq? '=        (op stmt)) (interpret_assign  stmt env               ))
       ((eq? 'if       (op stmt)) (interpret_if      stmt env ret break cont))
       ((eq? 'while    (op stmt)) (interpret_while   stmt env ret           ))
       ((eq? 'break    (op stmt)) (break                  env               ))
       ((eq? 'continue (op stmt)) (cont                   env               ))
+      ((eq? 'return   (op stmt)) (ret (interpret_value (op1 stmt) env)     ))
       (else                      (interpret_value   stmt env               ))
       )))
 
@@ -78,6 +78,14 @@
     (if (null? (op2 stmt))
       (declare (op1 stmt) env)
       (assign (op1 stmt) (interpret_value (op2 stmt) env) (declare (op1 stmt) env))
+      )))
+
+(define interpret_funcall (lambda (stmt env)
+    (error "Not implemented"
+      )))
+
+(define interpret_function (lambda (stmt env)
+    (error "Not implemented"
       )))
 
 ; Interprets an if statement (e.g. "if (...) ...;" or "if (...) {...} else {...}").
@@ -112,7 +120,7 @@
       ((eq? '&& (op stmt)) (and       (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '|| (op stmt)) (or        (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '!  (op stmt)) (not       (interpret_value (op1 stmt) env)                                 ))
-      (else  (error (cons "Symbol not recognized" (op stmt))))
+      (else  (error "Symbol not recognized:" (op stmt) '-> stmt))
       )))
 
 ; Interprets the value of a while loop.

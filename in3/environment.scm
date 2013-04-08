@@ -83,8 +83,7 @@
     (begin
       (cond
         ((declared? name env) (set-box! (lookup-ref name env) val))
-        (else (assign name val (declare name env)))
-        )
+        (else (error "Referencing undeclared variable: " name)))
       env
       )))
 
