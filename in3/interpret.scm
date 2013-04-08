@@ -7,10 +7,10 @@
 
 ;;; Expression abstractions
 
-(define op1 (lambda (expr) (if (null? (cdr   expr)) (error "Expression has no op1") (cadr   expr))))
-(define op2 (lambda (expr) (if (null? (cddr  expr)) (error "Expression has no op2") (caddr  expr))))
-(define op3 (lambda (expr) (if (null? (cdddr expr)) (error "Expression has no op3") (cadddr expr))))
-(define op  (lambda (expr) (if (null? expr)         (error "Expression has no op") (car    expr))))
+(define op1 (lambda (expr) (if (null? (cdr   expr)) '() (cadr   expr))))
+(define op2 (lambda (expr) (if (null? (cddr  expr)) '() (caddr  expr))))
+(define op3 (lambda (expr) (if (null? (cdddr expr)) '() (cadddr expr))))
+(define op  (lambda (expr) (if (null? expr)         '() (car    expr))))
 
 
 ;;; Expression evaluation
@@ -49,10 +49,7 @@
     (cond
       ((eq? '=        (op stmt)) (interpret_assign  stmt env               ))
       ((eq? 'begin    (op stmt)) (interpret_begin   stmt env ret break cont))
-      ((eq? 'function (op stmt)) (interpret_fundef  stmt env               ))
-      ((eq? 'funcall  (op stmt)) (interpret_funcall stmt env               ))
       ((eq? 'if       (op stmt)) (interpret_if      stmt env ret break cont))
-      ((eq? 'var      (op stmt)) (interpret_declare stmt env               ))
       ((eq? 'while    (op stmt)) (interpret_while   stmt env ret           ))
       ((eq? 'break    (op stmt)) (break                  env               ))
       ((eq? 'continue (op stmt)) (cont                   env               ))
@@ -109,7 +106,7 @@
 (define interpret_function (lambda (stmt env ret)
     (popframe
       (interpret_statement_list
-        (cdr stmt)
+        stmt
         (pushframe env)
         ret
         (lambda (v) (error "Illegal break"))
@@ -133,6 +130,9 @@
       ((eq? 'false stmt) #f)
       ((not (list? stmt)) (lookup stmt env))
       ((null? (cdr stmt)) (interpret_value (car stmt) env))
+      ((eq? 'function (op stmt)) (interpret_fundef  stmt env               ))
+      ((eq? 'funcall  (op stmt)) (interpret_funcall stmt env               ))
+      ((eq? 'var      (op stmt)) (interpret_declare stmt env               ))
       ((and (eq? '- (op stmt)) (null? (op2 stmt))) (-                  (interpret_value (op1 stmt) env)))
       ((eq? '+  (op stmt)) (+         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))
       ((eq? '-  (op stmt)) (-         (interpret_value (op1 stmt) env) (interpret_value (op2 stmt) env)))

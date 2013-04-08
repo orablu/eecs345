@@ -78,16 +78,16 @@
 ; Tests whether the variable is delcared.
 (define declared? (lambda (name env)
     (cond
-      ((null? (unbox env)) #f)
-      ((inframe? name (topframe (unbox env))) #t)
-      (else (declared? name (lowframes (unbox env))))
+      ((null? env) #f)
+      ((inframe? name (topframe env)) #t)
+      (else (declared? name (lowframes env)))
       )))
 
 ; Sets the value of the named variable in the environment to val in the most current frame.
 (define assign (lambda (name val env)
     (begin
       (cond
-        ((declared? name env) (set-box! (lookup-ref name env) val))
+        ((declared? name (unbox env)) (set-box! (lookup-ref name env) val))
         (else (error "Referencing undeclared variable:" name)))
       env
       )))

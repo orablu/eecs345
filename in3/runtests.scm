@@ -12,6 +12,8 @@
 ; Tests are added in this format
 ; (verify "tests\\NAME.js" 'RESULT)
 
+(define runtests (lambda () (begin
+
 ; Tests for behavior from the first interpreter.
     (verify "tests\\1\\01.js" 150)
     (verify "tests\\1\\02.js" -4)
@@ -41,3 +43,7 @@
     ;(verify "tests\\2\\10.js" 'error)
     (verify "tests\\2\\12.js" 12)
     (verify "tests\\2\\13.js" 32)
+
+)))
+
+(runtests)
