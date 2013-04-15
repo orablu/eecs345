@@ -166,9 +166,19 @@
     (cond
       ((and (null? params) (null? formals)) env)
       ((or  (null? params) (null? formals)) (error "Invalid number of arguments"))
+      ((or (null? (cdr params)) (null? (cdr formals))) (assign
+        (car formals)
+        (interpret_value (car params) env)
+        (declare (car formals) funcenv)))
       (else (assign
         (car formals)
-        ((interpret_value (car params) env))
-        (declare (car formals) funcenv)))
+        (interpret_value (car params) env)
+        (declare
+          (car formals)
+          (set_formal_params
+            (cdr params)
+            (cdr formals)
+            env
+            funcenv))))
       )))
 

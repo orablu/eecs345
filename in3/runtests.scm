@@ -44,6 +44,10 @@
     (verify "tests\\2\\12.js" 12)
     (verify "tests\\2\\13.js" 32)
 
+; Tests for behavior from the third interpreter.
+    (verify "tests\\3\\01.js" 7)
+    (verify "tests\\3\\02.js" 720)
+
 )))
 
 (runtests)
