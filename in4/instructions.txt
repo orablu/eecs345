@@ -1,74 +1,87 @@
 EECS 345: Programming Language Concepts
-Interpreter Project, Part 3
-Due Sunday, April 7
+Interpreter Project, Part 4
+Due Wednesday, April 17
 
-For this and all Interpreter Project's, you are strongly encouraged, but not required, to work in a team of two. You will be building off of the interpreter you wrote for part 1. As a result, it is expected that you keep the same teams that you used for part 2. If you need to change your team, please speak to the course instructor.
+For this and all Interpreter Project's, you are strongly encouraged, but not required, to work in a team of two. You will be building off of the interpreter you wrote for part 1. As a result, it is expected that you keep the same teams that you used for part 3. If you need to change your team, please speak to the course instructor.
 
-In this homework, you will expand on the interpreter of part 2 adding function definitions. We still assume all variables store integers (for the individuals working solo) and integers and boolean (for those working in teams). Likewise, all functions will only return integers (for the individuals working solo) and integers and boolean (for those working in teams).
+In this homework, you will expand on the interpreter of part 3 adding class definitions. Note that we will not be adding objects in this part of the interpreter. We still assume all variables store integers (for the individuals working solo) and integers and boolean (for those working in teams). Likewise, all functions will only return integers (for the individuals working solo) and integers and boolean (for those working in teams). For teams, we will also still allow functions to be both call-by-value and call-by-reference.
 
-For teams: You are to implement both the call-by-reference and the call-by-value parameter passing styles. Solo programmers will only be tested on call-by-value.
+Here is an example of a program of two classes, using only static fields and methods:
 
-An example program that computes the greatest common divisor of two numbers is as follows:
+class Rectangle {
+  static var width = 10;
+  static var height = 12;
 
-var x = 14;
-var y = 3 * x - 7;
-gcd(a,b) {
-  if (a < b) {
-    var temp = a;
-    a = b;
-    b = temp;
+  static area() {
+    var a = width * height;
+    return a;
   }
-  var r = a % b;
-  while (r != 0) {
-    a = b;
-    b = r;
-    r = a % b;
+
+  static setSize(x, y) {
+    width = x;
+    height = y;
   }
-  return b;
-}
-main () {
-  return gcd(x,y);
 }
 
-Here is another example program that uses recursion: 
-factorial (x) {
-  if (x == 0)
-    return 1;
-  else
-    return x * factorial(x - 1);
+class Square extends Rectangle {
+  static setSize(x) {
+    super.setSize(x, x);
+  }
+
+  static main() {
+    setSize(20);
+    return area();
+  }
 }
 
-main () {
-  return factorial(6);
-}
+Your interpreter should now take two parameters, a file and a classname. For example, (interpret "MyProgram.j" "Square"), where file is the name of the file to be interpreted, and classname is the name of the class whose main method you are to run. The function should call parser on the file file, and then lookup (string->symbol classname) in the environment to get the desired class, and then lookup the main method of this class. The final value returned by your interpreter should be whatever is returned by main.
 
-Note that only assignment statements are allowed outside of functions. Functions do not have to return a value. The parser will have the following additional constructs: a(x, y) {          =>   (function a (x y) ((return (+ x y)))
-  return x + y;
-}
+For Teams
 
-main () {          =>   (function main () ((var x 10) (var y 15) (return (funcall gcd x y))))
-  var x = 10;
-  var y = 15;
-  return gcd(x, y);
-}
+For those working in a team, you must also allow for method/function overloading. Since we are only checking types dynamically, an overloaded function must have a different number of parameters.
 
-The final value returned by your interpreter should be whatever is returned by main. 
+Details
 
-We will use a similar style as C++ for call-by-reference: 
-swap(&x, &y) {     =>  (function swap (& x & y) ((var temp x) (= x y) (= y temp)))
-  var temp = x;
-  x = y;
-  y = temp;
-}
+- Variables and methods can now be static (class) or non-static (instance).
+- The main method should be static.
+- The language supports use of super.
+- The top level of the program is only class definitions.
+- Each class definition consists of variable declarations and function definitions (just like the top level of part 3 of the interpreter).
+- Although it will not be useful until the next part of the interpreter, not that nested uses of the dot operator will be allowed.
 
+Parser Constructs
 
+class A {              =>   (class A () body)
+  body
 
-Function calls may appear on the right hand side of global variable declaration/initialization statements, but the function (and any functions that function calls) must be defined before the variable declaration. Otherwise, functions that are used inside other functions do not need to be defined before they are used.
+class B extends A {    =>   (class B (extends A)  body)
+  body
 
-For teams, it is an error to use call-by-reference on anything other than a variable. For example, if the program contains swap(x, x + 10), you should give an error because x + 10 is not a variable.
+static var x = 5;      =>   (static-var x 5)
 
-You do not have to stick to strict functional programming style, but you should try to avoid global variables because they will probably make your life harder. A new parser is provided for you, functionParser.scm, that will parse code containing functions/methods as in the above examples. To use the parser, type the code into a file, and call (parser "filename") as before. To call the parsers from your interpreter code, place the command (load "parsename") in the Scheme file.
+static main() {        =>   (static-function main () body)
+  body
 
-You should write a function called interpret that takes a filename, calls parser with the filename, evaluates the parse tree returned by parser, and returns the proper value returned by main. You are to maintain an environment for the variables and return an error message if the program attempts to use a variable before it is declared, attempts to use a variable before it is initialized, or attempts to use a method that has not been defined.
+A.x                    =>   (dot A x)
 
-First, test your functions without global variables, and then test your functions using global variables. The tricky part with the functions is that, unlike the other language constructs we have created, method calls can be a statement (where the return value is ignored), and an expression (where the return value is used). You need to make sure both function types work.
+A.f(3,5)               =>   (funcall (dot A f) 3 5)
+
+Basic Task
+
+Write an interpreter that correctly handles classes, static variables, and static methods. You should be able to set value for variables, call methods, and use super.
+
+Recall the suggested order from lecture to attack the problem.
+
+1. Create helper functions to create a new class and instance (will be needed for part 5) and to access the portions of a class and instance.
+2. Everywhere when interpreting statements and expressions that an environment is passed as a parameter, you also have to pass parameters for class and instance.
+3. Change the top level interpreter code that you used in part 3 to return a class instead of returning an environment.
+4. Change the top level interpreter code that you wrote for part 3 to expect static and non-static declarations for variables and functions.
+5. Create a new top level for the interpreter that reads a list of class definitions, and stores each class with its definition in the environment.
+6. Create a function that takes a variable, a class, and an instance, and checks if the variable is in the list of class or instance variables and returns its value.
+7. Create a function that takes a variable, and environment, a class, and an instance, if the variable is in the environment, look it up, otherwise look in the class and instance variables.
+8. Create a function that takes the left hand side of a dot expression and returns a (class, instance) pair representing the class and instance of the left hand side.
+9. Create a function that takes a dot expression, calls the above function to evaluate the left hand side, and looks up the right hand side in the class/instance variables.
+10. Update your code that interprets a function definition to add a new function to the closure that looks up the function's class in the environment.
+11. Update the code that evaluates a function call to deal with objects and classes.
+12. Update the code that interprets an assignment statement so that it looks for the variable in the environment, class and instance variables
+13. Create a new interpret function.
