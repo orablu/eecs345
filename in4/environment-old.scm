@@ -15,18 +15,18 @@
 ; and the second of their values.
 
 ; Generates a new environment. 
-(define newenv    (lambda ()        (cons (newframe) '())))
+(define newenv    (lambda ()        (box (cons (newframe) '()))))
 
 ; Frame abstractions.
-(define newframe  (lambda ()        (box '(()()))))
-(define names     (lambda (frame)   (car (unbox frame))))
-(define vals      (lambda (frame)   (car (cdr (unbox frame)))))
+(define newframe  (lambda ()        '(()())))
+(define names     (lambda (frame)   (car frame)))
+(define vals      (lambda (frame)   (car (cdr frame))))
 (define topframe  (lambda (env)     (car env)))
 (define lowframes (lambda (env)     (cdr env)))
-(define pushframe (lambda (env)     (cons (newframe) env)))
-(define popframe  (lambda (env)     (cdr env)))
-(define inframe?  (lambda (x frame) (not (= -1 (getindex x (names frame))))))
-(define getval    (lambda (x frame) (itemat (getindex x (names frame)) (vals frame))))
+(define pushframe (lambda (env)     (begin (set-box! env (cons (newframe) (unbox env))) env)))
+(define popframe  (lambda (env)     (begin (set-box! env (cdr (unbox env))) env)))
+(define inframe?  (lambda (name frame) (not (= -1 (getindex name (names frame))))))
+(define getval    (lambda (name frame) (itemat (getindex name (names frame)) (vals frame))))
 
 ; Gets the item in list l at index i, starting from 0.
 (define itemat (lambda (i l)
@@ -43,33 +43,36 @@
       )))
 
 ; Replaces the item in list l at index i with x, starting at 0.
-(define replaceat (lambda (x i l)
+(define replaceat (lambda (name i l)
     (if (= i 0)
-      (cons x (cdr l))
-      (cons (car l) (replaceat x (- i 1) (cdr l)))
+      (cons name (cdr l))
+      (cons (car l) (replaceat name (- i 1) (cdr l)))
       )))
 
 ; Gets the index of the given item.
-(define getindex (lambda (x l)
+(define getindex (lambda (name l)
     (letrec
-      ((getindex-cps (lambda (x l k)
+      ((getindex-cps (lambda (name l k)
         (cond
           ((null? l) -1)
-          ((eq? x (car l)) (k 0))
-          (else (getindex-cps x (cdr l) (lambda (v) (k (+ v 1)))))
+          ((eq? name (car l)) (k 0))
+          (else (getindex-cps name (cdr l) (lambda (v) (k (+ v 1)))))
           ))))
-      (getindex-cps x l (lambda (v) v))
+      (getindex-cps name l (lambda (v) v))
     )))
 
 ; Declares a new variable in the environment in the current frame.
 (define declare (lambda (name env)
-    (if (not (inframe? name (topframe env)))
-      (begin
-        (set-box! (topframe env) (list
-          (cons name    (names (topframe env)))
-          (cons (box 0) (vals  (topframe env)))))
-        env)
-      (error "Variable is already defined:" name)
+    (begin
+      (if (not (inframe? name (topframe (unbox env))))
+        (set-box! env (cons
+          (cons
+            (cons name          (names (topframe (unbox env))))
+            (cons (cons (box 0) (vals  (topframe (unbox env)))) '()))
+          (lowframes (unbox env))
+          ))
+        (error "Variable is already defined:" name))
+      env
       )))
 
 ; Tests whether the variable is delcared.
@@ -82,19 +85,21 @@
 
 ; Sets the value of the named variable in the environment to val in the most current frame.
 (define assign (lambda (name val env)
-    (if (declared? name env)
-      (begin
-        (set-box! (lookup-ref name env) val)
-        env)
-      (error "Referencing undeclared variable:" name)
+    (begin
+      (cond
+        ((declared? name (unbox env)) (set-box! (lookup-ref name env) val))
+        (else (error "Referencing undeclared variable:" name)))
+      env
       )))
 
 ; Returns the reference to the given variable.
 (define lookup-ref (lambda (name env)
-    (if (inframe? name (topframe env))
-      (getval name (topframe env))
-      (lookup-ref name (lowframes env))
-      )))
+    (letrec ((lookup-env (lambda (name env)
+        (if (inframe? name (topframe env))
+          (getval name (topframe env))
+          (lookup-env name (lowframes env))))))
+      (lookup-env name (unbox env)))))
 
 ; Returns the value of the given variable.
 (define lookup (lambda (name env) (unbox (lookup-ref name env))))
+

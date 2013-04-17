@@ -2,7 +2,8 @@
 ;;; EECS 345   - Interpreter 4
 
 (load "environment.scm")
-(load "classParser.scm")
+; (load "classParser.scm")
+(load "functionParser.scm")
 
 
 ;;; Expression abstractions
@@ -99,7 +100,7 @@
 (define interpret_fundef (lambda (stmt env)
     (assign
       (op1 stmt)
-      (cons (op2 stmt) (cons (op3 stmt) (cons (lambda () env) '())))
+      (list (op2 stmt) (op3 stmt) (lambda () (pushframe env)))
       (declare (op1 stmt) env)
       )))
 
