@@ -8,10 +8,10 @@
 
 ;;; Expression abstractions
 
+(define op  (lambda (expr) (if (null? expr)         '() (car    expr))))
 (define op1 (lambda (expr) (if (null? (cdr   expr)) '() (cadr   expr))))
 (define op2 (lambda (expr) (if (null? (cddr  expr)) '() (caddr  expr))))
 (define op3 (lambda (expr) (if (null? (cdddr expr)) '() (cadddr expr))))
-(define op  (lambda (expr) (if (null? expr)         '() (car    expr))))
 
 
 ;;; Expression evaluation
@@ -22,18 +22,18 @@
       (unparse (interpret_funcall main (interpret_global (parser file) (newenv) main)))
       )))
 
+; Interprets a list of parsed statements in the global scope.
 (define interpret_global (lambda (parsetree env main)
     (if (null? parsetree) env
       (interpret_global (cdr parsetree) (interpret_global_statement (car parsetree) env main) main)
         )))
 
-(define interpret_global_statement (lambda (stmt env main)
+; Interprets a single statement in h global scope.
+(define interpret_global_statement (lambda (stmt env)
     (cond
-      ((eq? 'var             (op stmt)) (interpret_declare  stmt env               )) ; TODO: Change
-      ((eq? 'static-var      (op stmt)) (interpret_sdeclare stmt env               )) ; TODO: Add
-      ((eq? 'function        (op stmt)) (interpret_fundef   stmt env               )) ; TODO: Change
-      ((eq? 'static-function (op stmt)) (interpret_sfundef  stmt env               )) ; TODO: Add
-      ((eq? 'class           (op stmt)) (interpret_classdef stmt env               )) ; TODO: Add
+      ((eq? 'var             (op stmt)) (interpret_declare  stmt env))
+      ((eq? 'static-var      (op stmt)) (interpret_sdeclare stmt env))
+      ((eq? 'class           (op stmt)) (interpret_classdef stmt env))
       (else (error "Action not supported in global scope"))
       )))
 
@@ -61,9 +61,6 @@
       ((eq? 'while           (op stmt)) (interpret_while    stmt env ret           ))
       ((eq? 'var             (op stmt)) (interpret_declare  stmt env               ))
       ((eq? 'static-var      (op stmt)) (interpret_sdeclare stmt env               ))
-      ((eq? 'function        (op stmt)) (interpret_fundef   stmt env               ))
-      ((eq? 'static-function (op stmt)) (interpret_sfundef  stmt env               ))
-      ((eq? 'class           (op stmt)) (interpret_classdef stmt env               ))
       ((eq? 'break           (op stmt)) (break                   env               ))
       ((eq? 'continue        (op stmt)) (cont                    env               ))
       ((eq? 'return          (op stmt)) (ret (interpret_value (op1 stmt) env)      ))
@@ -148,16 +145,23 @@
       )))
 
 ; Interprets a function definition (e.g. "main() {...}").
-(define interpret_fundef (lambda (stmt env)
+(define interpret_fundef (lambda (stmt env class)
     (error "Not Implemented") ; TODO: Implement instance method declare.
     ))
 
 ; Interprets a static function definition (e.g. "static main() {...}").
-(define interpret_sfundef (lambda (stmt env)
-    (assign
-      (op1 stmt)
-      (list (op2 stmt) (op3 stmt) (lambda () (pushframe env)))
-      (declare (op1 stmt) env)
+(define interpret_sfundef (lambda (stmt env main class)
+    (if (eq? 'main (op1 stmt))
+      (begin
+        (set-box! main (list 'funcall (list 'dot class 'main)))
+        (assign
+          (op1 stmt)
+          (list (op2 stmt) (op3 stmt) (lambda () (pushframe env)))
+          (declare (op1 stmt) env)))
+      (assign
+        (op1 stmt)
+        (list (op2 stmt) (op3 stmt) (lambda () (pushframe env)))
+        (declare (op1 stmt) env))
       )))
 
 ; Interprets a function call (e.g. "min(3, 5)").

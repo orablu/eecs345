@@ -27,7 +27,6 @@ class Square extends Rectangle {
   static setSize(x) {
     super.setSize(x, x);
   }
-
   static main() {
     setSize(20);
     return area();
