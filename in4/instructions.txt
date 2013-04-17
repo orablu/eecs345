@@ -47,7 +47,7 @@ Details
 - The language supports use of super.
 - The top level of the program is only class definitions.
 - Each class definition consists of variable declarations and function definitions (just like the top level of part 3 of the interpreter).
-- Although it will not be useful until the next part of the interpreter, not that nested uses of the dot operator will be allowed.
+- Although it will not be useful until the next part of the interpreter, note that nested uses of the dot operator will be allowed.
 
 Parser Constructs
 
@@ -73,15 +73,28 @@ Write an interpreter that correctly handles classes, static variables, and stati
 Recall the suggested order from lecture to attack the problem.
 
 1. Create helper functions to create a new class and instance (will be needed for part 5) and to access the portions of a class and instance.
+
 2. Everywhere when interpreting statements and expressions that an environment is passed as a parameter, you also have to pass parameters for class and instance.
+
 3. Change the top level interpreter code that you used in part 3 to return a class instead of returning an environment.
+
 4. Change the top level interpreter code that you wrote for part 3 to expect static and non-static declarations for variables and functions.
+
 5. Create a new top level for the interpreter that reads a list of class definitions, and stores each class with its definition in the environment.
+
 6. Create a function that takes a variable, a class, and an instance, and checks if the variable is in the list of class or instance variables and returns its value.
+
 7. Create a function that takes a variable, and environment, a class, and an instance, if the variable is in the environment, look it up, otherwise look in the class and instance variables.
+
 8. Create a function that takes the left hand side of a dot expression and returns a (class, instance) pair representing the class and instance of the left hand side.
+
 9. Create a function that takes a dot expression, calls the above function to evaluate the left hand side, and looks up the right hand side in the class/instance variables.
+
 10. Update your code that interprets a function definition to add a new function to the closure that looks up the function's class in the environment.
+
 11. Update the code that evaluates a function call to deal with objects and classes.
+
 12. Update the code that interprets an assignment statement so that it looks for the variable in the environment, class and instance variables
+
 13. Create a new interpret function.
+
